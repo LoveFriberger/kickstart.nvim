@@ -205,6 +205,35 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+-- NOTE: My own added keymaps -----------------------------
+
+--- Rename keymap
+vim.keymap.set('n', '<leader>r', function()
+  -- when rename opens the prompt, this autocommand will trigger
+  -- it will "press" CTRL-F to enter the command-line window `:h cmdwin`
+  -- in this window I can use normal mode keybindings
+  local cmdId
+  cmdId = vim.api.nvim_create_autocmd({ 'CmdlineEnter' }, {
+    callback = function()
+      local key = vim.api.nvim_replace_termcodes('<C-f>', true, false, true)
+      vim.api.nvim_feedkeys(key, 'c', false)
+      vim.api.nvim_feedkeys('0', 'n', false)
+      -- autocmd was triggered and so we can remove the ID and return true to delete the autocmd
+      cmdId = nil
+      return true
+    end,
+  })
+  vim.lsp.buf.rename()
+  -- if LPS couldn't trigger rename on the symbol, clear the autocmd
+  vim.defer_fn(function()
+    -- the cmdId is not nil only if the LSP failed to rename
+    if cmdId then
+      vim.api.nvim_del_autocmd(cmdId)
+    end
+  end, 500)
+end, { desc = 'Rename symbol' })
+--------------------------------------------------------------------
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -284,6 +313,15 @@ require('lazy').setup({
     },
   },
 
+  {
+    'MeanderingProgrammer/render-markdown.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.nvim' }, -- if you use the mini.nvim suite
+    -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.icons' },        -- if you use standalone mini plugins
+    -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' }, -- if you prefer nvim-web-devicons
+    ---@module 'render-markdown'
+    ---@type render.md.UserConfig
+    opts = {},
+  },
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
   -- This is often very useful to both group configuration, as well as handle
@@ -461,7 +499,14 @@ require('lazy').setup({
       end, { desc = '[S]earch [N]eovim files' })
     end,
   },
-
+  {
+    'zbirenbaum/copilot.lua',
+    cmd = 'Copilot',
+    event = 'InsertEnter',
+    config = function()
+      require('copilot').setup {}
+    end,
+  },
   -- LSP Plugins
   {
     -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
@@ -883,20 +928,15 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
+    'shaunsingh/nord.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
       ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
-        },
-      }
 
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'nord'
     end,
   },
 
